@@ -198,7 +198,7 @@ public class WorkoutTrackerGUI extends JFrame {
         lblStatus.setText("Saving workout to server...");
         lblStatus.setForeground(new Color(0, 102, 204));
 
-        // PEMATUHAN MINGGU 4: Menjalankan HTTP Call di thread berasingan (EDT Offloading)
+        //  Menjalankan HTTP Call di thread berasingan (EDT Offloading)
         new Thread(() -> {
             try {
                 int duration = Integer.parseInt(durationStr);

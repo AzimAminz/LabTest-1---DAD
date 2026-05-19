@@ -1,0 +1,175 @@
+{
+  "info": {
+    "_postman_id": "e5ff0649-c1e0-4a1b-9d2b-8b90f9c38087",
+    "name": "BITP3123_Test_WorkoutAPI",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "34054929"
+  },
+  "item": [
+    {
+      "name": "workouts",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8080/api/workouts",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "workouts"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "workouts/{id}",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8080/api/workouts/1",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "workouts",
+            "1"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "workouts/999",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8080/api/workouts/999",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "workouts",
+            "999"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "workouts/high-intensity",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8080/api/workouts/high-intensity",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "workouts",
+            "high-intensity"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "workouts",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8080/api/workouts",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "workouts"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "workouts error",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8080/api/workouts",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "workouts"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "workouts/{id}",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8080/api/workouts/2",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "workouts",
+            "2"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "workouts/{id} error",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8080/api/workouts/999",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "workouts",
+            "999"
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}
