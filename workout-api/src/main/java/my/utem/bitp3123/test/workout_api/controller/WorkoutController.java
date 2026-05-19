@@ -11,7 +11,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/workouts")
-@CrossOrigin(origins = "*") // Membolehkan panggilan daripada frontend (Next.js) pada port 3000
+@CrossOrigin(origins = "*") 
 public class WorkoutController {
 
     private final WorkoutService workoutService;
@@ -21,13 +21,13 @@ public class WorkoutController {
         this.workoutService = workoutService;
     }
 
-    // 1. GET /api/workouts - Mengembalikan semua list workout (200 OK)
+    // 1. GET /api/workouts 
     @GetMapping
     public List<Workout> getAllWorkouts() {
         return workoutService.findAll();
     }
 
-    // 2. GET /api/workouts/{id} - Mengembalikan satu workout berdasarkan id (200 OK / 404 Not Found)
+    // 2. GET /api/workouts/{id} 
     @GetMapping("/{id}")
     public ResponseEntity<Workout> getWorkoutById(@PathVariable int id) {
         return workoutService.findById(id)
@@ -35,13 +35,13 @@ public class WorkoutController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // 3. GET /api/workouts/high-intensity - Mengembalikan workout berintensiti tinggi (200 OK)
+    // 3. GET /api/workouts/high-intensity 
     @GetMapping("/high-intensity")
     public List<Workout> getHighIntensityWorkouts() {
         return workoutService.findHighIntensity();
     }
 
-    // 4. POST /api/workouts - Menambah workout baharu (201 Created / 400 Bad Request jika exerciseName kosong)
+    // 4. POST /api/workouts 
     @PostMapping
     public ResponseEntity<Workout> addWorkout(@RequestBody Workout workout) {
         if (workout.getExerciseName() == null || workout.getExerciseName().trim().isEmpty()) {
@@ -51,7 +51,7 @@ public class WorkoutController {
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
-    // 5. DELETE /api/workouts/{id} - Memadam workout (204 No Content / 404 Not Found)
+    // 5. DELETE /api/workouts/{id} 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteWorkout(@PathVariable int id) {
         boolean deleted = workoutService.delete(id);

@@ -32,14 +32,14 @@ public class WorkoutService {
                 .findFirst();
     }
 
-    // adds a new workout; the id must auto-increment
+    // adds a new workout
     public Workout add(Workout w) {
         w.setId(nextId++);
         workouts.add(w);
         return w;
     }
 
-    // removes a workout; signals whether it existed
+    // removes a workout 
     public boolean delete(int id) {
         return workouts.removeIf(w -> w.getId() == id);
     }
