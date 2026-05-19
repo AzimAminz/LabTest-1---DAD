@@ -213,7 +213,7 @@ public class WorkoutTrackerGUI extends JFrame {
                         .connectTimeout(Duration.ofSeconds(5))
                         .build();
 
-                // PEMATUHAN MINGGU 6: POST Request untuk saving data
+                //  POST Request untuk saving data
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create("http://localhost:8080/api/workouts"))
                         .header("Content-Type", "application/json")
