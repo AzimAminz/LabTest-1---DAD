@@ -13,12 +13,13 @@ interface Workout {
 export default function Home() {
   // Form State
   const [exerciseName, setExerciseName] = useState("");
-  const [durationMinutes, setDurationMinutes] = useState("");
+  const [durationMinutes, setDurationMinutes] = useState(30); // Default 30 as in the image
   const [caloriesBurned, setCaloriesBurned] = useState("");
   const [category, setCategory] = useState("Cardio");
 
   // App State
   const [workouts, setWorkouts] = useState<Workout[]>([]);
+  const [nextId, setNextId] = useState<number>(1);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [showHighIntensityOnly, setShowHighIntensityOnly] = useState(false);
@@ -27,19 +28,27 @@ export default function Home() {
 
   const backendUrl = "http://localhost:8080/api/workouts";
 
-  // Fetch all workouts or high intensity workouts
+  // Fetch all workouts
   const fetchWorkouts = async (highIntensity = showHighIntensityOnly) => {
     setLoading(true);
     setErrorMessage("");
     try {
       const url = highIntensity ? `${backendUrl}/high-intensity` : backendUrl;
       const res = await fetch(url);
-      if (!res.ok) throw new Error("Failed to fetch workouts from backend.");
+      if (!res.ok) throw new Error("Failed to fetch workouts.");
       const data = await res.json();
       setWorkouts(data);
+
+      // Determine next auto-increment ID
+      if (data.length > 0) {
+        const maxId = Math.max(...data.map((w: Workout) => w.id || 0));
+        setNextId(maxId + 1);
+      } else {
+        setNextId(1);
+      }
     } catch (err: any) {
       console.error(err);
-      setErrorMessage("Could not connect to Spring Boot backend. Please make sure the backend server is running on port 8080.");
+      setErrorMessage("Cannot connect to Spring Boot API. Please ensure the backend is running on http://localhost:8080");
     } finally {
       setLoading(false);
     }
@@ -49,19 +58,18 @@ export default function Home() {
     fetchWorkouts();
   }, [showHighIntensityOnly]);
 
-  // Handle Save Workout
+  // Handle Save
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage("");
     setSuccessMessage("");
 
-    // Validation
     if (!exerciseName.trim()) {
       setErrorMessage("Exercise Name cannot be blank.");
       return;
     }
 
-    const duration = parseInt(durationMinutes);
+    const duration = durationMinutes;
     const calories = parseFloat(caloriesBurned);
 
     if (isNaN(duration) || duration <= 0) {
@@ -93,16 +101,16 @@ export default function Home() {
       });
 
       if (res.status === 201) {
-        setSuccessMessage("Workout saved successfully!");
+        setSuccessMessage("Workout successfully saved!");
         handleCancel();
         fetchWorkouts();
       } else if (res.status === 400) {
-        setErrorMessage("Bad Request: Please check your input fields.");
+        setErrorMessage("Bad Request: Please check input fields.");
       } else {
         setErrorMessage(`Server error: Returned status ${res.status}`);
       }
     } catch (err) {
-      setErrorMessage("Error connecting to backend server. Please check your network.");
+      setErrorMessage("Connection error. Is the Spring Boot backend running?");
     } finally {
       setSubmitting(false);
     }
@@ -111,13 +119,13 @@ export default function Home() {
   // Handle Cancel (Reset Form)
   const handleCancel = () => {
     setExerciseName("");
-    setDurationMinutes("");
+    setDurationMinutes(30);
     setCaloriesBurned("");
     setCategory("Cardio");
     setErrorMessage("");
   };
 
-  // Handle Delete Workout
+  // Handle Delete
   const handleDelete = async (id: number) => {
     if (!confirm("Are you sure you want to delete this workout?")) return;
     setErrorMessage("");
@@ -129,292 +137,352 @@ export default function Home() {
       });
 
       if (res.status === 204) {
-        setSuccessMessage("Workout deleted successfully!");
+        setSuccessMessage("Workout successfully deleted!");
         fetchWorkouts();
       } else if (res.status === 404) {
-        setErrorMessage("Workout not found or already deleted.");
+        setErrorMessage("Workout not found.");
       } else {
-        setErrorMessage(`Could not delete: Server returned status ${res.status}`);
+        setErrorMessage(`Could not delete: Status ${res.status}`);
       }
     } catch (err) {
-      setErrorMessage("Error connecting to backend server to delete.");
+      setErrorMessage("Error connecting to server.");
     }
   };
 
-  return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-indigo-500 selection:text-white pb-12">
-      {/* Background decoration */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[400px] bg-gradient-to-b from-indigo-950/20 via-transparent to-transparent pointer-events-none blur-3xl z-0" />
+  // Stepper helper
+  const incrementDuration = () => setDurationMinutes(prev => prev + 5);
+  const decrementDuration = () => setDurationMinutes(prev => Math.max(1, prev - 5));
 
-      {/* Header */}
-      <header className="relative z-10 max-w-6xl mx-auto px-6 pt-12 pb-6 border-b border-slate-900 flex flex-col md:flex-row justify-between items-center gap-4">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="px-2.5 py-1 text-xs font-bold tracking-wider uppercase text-indigo-400 bg-indigo-950/50 border border-indigo-900 rounded-full">
-              Lab Test — DAD
+  return (
+    <div className="min-h-screen bg-slate-50 text-slate-800 font-sans selection:bg-blue-500 selection:text-white pb-16 relative overflow-hidden">
+      
+      {/* Decorative gradient spot in the background */}
+      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-100/40 rounded-full blur-3xl pointer-events-none -z-10" />
+      <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-indigo-100/30 rounded-full blur-3xl pointer-events-none -z-10" />
+
+      {/* Main Container */}
+      <div className="max-w-6xl mx-auto px-4 pt-12">
+        
+        {/* Header */}
+        <header className="mb-10 text-center sm:text-left flex flex-col sm:flex-row justify-between items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 flex items-center justify-center sm:justify-start gap-2">
+              <span className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-2 rounded-xl shadow-lg shadow-blue-500/20">🏋️‍♂️</span>
+              Workout Tracker
+            </h1>
+            <p className="text-sm text-slate-500 mt-1">
+              A modern, elegant web edition of your desktop entry form.
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full">
+              <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping" />
+              API Connected
             </span>
           </div>
-          <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-white via-slate-200 to-indigo-400 bg-clip-text text-transparent">
-            🏋️‍♂️ Workout Tracker
-          </h1>
-          <p className="text-sm text-slate-400 mt-1">
-            Modern distributed entry form & dynamic analytics dashboard.
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => fetchWorkouts()}
-            className="px-4 py-2 text-sm font-medium bg-slate-900 border border-slate-800 hover:bg-slate-850 active:scale-95 transition rounded-lg flex items-center gap-2"
-          >
-            🔄 Sync Data
-          </button>
-        </div>
-      </header>
+        </header>
 
-      {/* Main Grid */}
-      <main className="relative z-10 max-w-6xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-8 mt-10">
-        
-        {/* Left Column: Form (Modern Entry Form) */}
-        <section className="lg:col-span-5">
-          <div className="bg-slate-900/60 backdrop-blur-md border border-slate-800/80 rounded-2xl p-6 shadow-xl relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500" />
+        {/* Layout Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          
+          {/* LEFT COLUMN: The Modern Entry Form (Matches the Wireframe exactly but with high aesthetics) */}
+          <div className="lg:col-span-5 flex justify-center">
             
-            <h2 className="text-xl font-bold text-slate-100 flex items-center gap-2 mb-1">
-              Workout Entry Form
-            </h2>
-            <p className="text-xs text-slate-400 mb-6">
-              Enter your session details to save and track your progress.
-            </p>
-
-            <form onSubmit={handleSave} className="space-y-5">
-              {/* Exercise Name */}
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
-                  Exercise Name
-                </label>
-                <input
-                  type="text"
-                  value={exerciseName}
-                  onChange={(e) => setExerciseName(e.target.value)}
-                  placeholder="e.g. Morning Jog, Bench Press..."
-                  className="w-full bg-slate-950 border border-slate-850 hover:border-slate-800 focus:border-indigo-500/80 focus:ring-1 focus:ring-indigo-500/20 text-sm rounded-lg px-4 py-3 outline-none transition placeholder:text-slate-600"
-                  disabled={submitting}
-                />
+            {/* The Window-style Card */}
+            <div className="w-full max-w-md bg-white border border-slate-200/80 rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden">
+              
+              {/* Blue Header Banner - "Workout Record" (Matches wireframe perfectly but beautiful) */}
+              <div className="bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 px-6 py-6 text-center relative">
+                <div className="absolute top-3 left-4 flex gap-1.5">
+                  <span className="w-2.5 h-2.5 bg-red-400/80 rounded-full" />
+                  <span className="w-2.5 h-2.5 bg-yellow-400/80 rounded-full" />
+                  <span className="w-2.5 h-2.5 bg-green-400/80 rounded-full" />
+                </div>
+                <h2 className="text-xl font-bold text-white tracking-wide mt-2">
+                  Workout Record
+                </h2>
+                <p className="text-xs text-blue-100/80 mt-1">Modern Entry Form</p>
               </div>
 
-              {/* Grid for Duration & Calories */}
-              <div className="grid grid-cols-2 gap-4">
-                {/* Duration */}
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
-                    Duration (min)
-                  </label>
-                  <input
-                    type="number"
-                    value={durationMinutes}
-                    onChange={(e) => setDurationMinutes(e.target.value)}
-                    placeholder="e.g. 45"
-                    className="w-full bg-slate-950 border border-slate-850 hover:border-slate-800 focus:border-indigo-500/80 focus:ring-1 focus:ring-indigo-500/20 text-sm rounded-lg px-4 py-3 outline-none transition placeholder:text-slate-600"
-                    disabled={submitting}
-                  />
-                </div>
-
-                {/* Calories Burned */}
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
-                    Calories Burned (kcal)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    value={caloriesBurned}
-                    onChange={(e) => setCaloriesBurned(e.target.value)}
-                    placeholder="e.g. 350"
-                    className="w-full bg-slate-950 border border-slate-850 hover:border-slate-800 focus:border-indigo-500/80 focus:ring-1 focus:ring-indigo-500/20 text-sm rounded-lg px-4 py-3 outline-none transition placeholder:text-slate-600"
-                    disabled={submitting}
-                  />
-                </div>
-              </div>
-
-              {/* Category Dropdown */}
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
-                  Category
-                </label>
-                <div className="relative">
-                  <select
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-850 hover:border-slate-800 focus:border-indigo-500/80 text-sm rounded-lg px-4 py-3 outline-none transition appearance-none cursor-pointer"
-                    disabled={submitting}
-                  >
-                    <option value="Cardio">🏃‍♂️ Cardio</option>
-                    <option value="Strength">🏋️‍♀️ Strength</option>
-                    <option value="Flexibility">🧘‍♂️ Flexibility</option>
-                  </select>
-                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">
-                    ▼
+              {/* Form Content */}
+              <form onSubmit={handleSave} className="p-6 sm:p-8 space-y-6">
+                
+                {/* ID Field at the Top (Matches the empty box at the top of the image) */}
+                <div className="flex items-center justify-center">
+                  <div className="inline-flex items-center gap-2 bg-slate-50 border border-slate-200 px-4 py-1.5 rounded-full text-xs font-semibold text-slate-500">
+                    <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
+                    Workout ID: <span className="text-slate-800 font-mono">#{workouts.length + 1}</span>
                   </div>
                 </div>
-              </div>
 
-              {/* Notification Alerts */}
-              {errorMessage && (
-                <div className="p-3.5 bg-red-950/40 border border-red-900/60 rounded-lg text-xs text-red-300">
-                  ⚠️ {errorMessage}
-                </div>
-              )}
-
-              {successMessage && (
-                <div className="p-3.5 bg-emerald-950/40 border border-emerald-900/60 rounded-lg text-xs text-emerald-300">
-                  ✨ {successMessage}
-                </div>
-              )}
-
-              {/* Form Buttons */}
-              <div className="flex items-center justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={handleCancel}
-                  className="px-4.5 py-2.5 text-sm font-medium text-slate-300 hover:text-white bg-transparent border border-slate-850 hover:bg-slate-850 active:scale-95 transition rounded-lg"
-                  disabled={submitting}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="relative px-5 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-indigo-500 to-indigo-650 hover:from-indigo-450 hover:to-indigo-600 focus:ring-2 focus:ring-indigo-500/20 active:scale-95 transition duration-150 rounded-lg shadow-lg shadow-indigo-500/10 flex items-center justify-center min-w-[130px]"
-                  disabled={submitting}
-                >
-                  {submitting ? (
-                    <div className="flex items-center gap-2">
-                      <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                      </</svg>
-                      Saving...
+                {/* Grid layout for fields */}
+                <div className="space-y-4">
+                  
+                  {/* Exercise Name */}
+                  <div className="grid grid-cols-3 items-center gap-4">
+                    <label className="text-sm font-bold text-slate-700 text-right pr-2">
+                      Exercise Name:
+                    </label>
+                    <div className="col-span-2">
+                      <input
+                        type="text"
+                        value={exerciseName}
+                        onChange={(e) => setExerciseName(e.target.value)}
+                        placeholder="e.g. Bench Press"
+                        className="w-full bg-slate-50 border border-slate-200 focus:border-blue-500 focus:bg-white text-sm rounded-lg px-3 py-2 outline-none transition focus:ring-2 focus:ring-blue-500/10 placeholder:text-slate-400"
+                        disabled={submitting}
+                      />
                     </div>
-                  ) : (
-                    "Save Workout"
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </section>
+                  </div>
 
-        {/* Right Column: Workouts List & Filters */}
-        <section className="lg:col-span-7 flex flex-col h-full">
-          <div className="bg-slate-900/60 backdrop-blur-md border border-slate-800/80 rounded-2xl p-6 shadow-xl flex flex-col flex-1">
-            
-            {/* Header Controls */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-              <div>
-                <h2 className="text-xl font-bold text-slate-100">
-                  Saved Sessions
-                </h2>
-                <p className="text-xs text-slate-400">
-                  Manage and monitor your logged workout routines.
-                </p>
-              </div>
+                  {/* Duration (min) with custom Spin Stepper (Matches wireframe spinner!) */}
+                  <div className="grid grid-cols-3 items-center gap-4">
+                    <label className="text-sm font-bold text-slate-700 text-right pr-2">
+                      Duration (min):
+                    </label>
+                    <div className="col-span-2 flex">
+                      <div className="flex items-center bg-slate-50 border border-slate-200 rounded-lg overflow-hidden w-full max-w-[150px]">
+                        <button
+                          type="button"
+                          onClick={decrementDuration}
+                          className="px-3 py-2 text-slate-500 hover:bg-slate-200 active:bg-slate-300 transition text-sm font-bold"
+                          disabled={submitting}
+                        >
+                          -
+                        </button>
+                        <input
+                          type="number"
+                          value={durationMinutes}
+                          onChange={(e) => setDurationMinutes(Math.max(1, parseInt(e.target.value) || 0))}
+                          className="w-full bg-transparent text-center text-sm font-bold text-slate-800 outline-none"
+                          disabled={submitting}
+                        />
+                        <button
+                          type="button"
+                          onClick={incrementDuration}
+                          className="px-3 py-2 text-slate-500 hover:bg-slate-200 active:bg-slate-300 transition text-sm font-bold"
+                          disabled={submitting}
+                        >
+                          +
+                        </button>
+                      </div>
+                      <span className="self-center ml-2 text-xs text-slate-400 font-medium">mins</span>
+                    </div>
+                  </div>
 
-              {/* High Intensity Filter */}
-              <div className="flex items-center bg-slate-950 p-1 border border-slate-850 rounded-lg">
-                <button
-                  onClick={() => setShowHighIntensityOnly(false)}
-                  className={`px-3 py-1.5 text-xs font-semibold rounded-md transition ${!showHighIntensityOnly ? "bg-indigo-600 text-white shadow" : "text-slate-400 hover:text-slate-200"}`}
-                >
-                  All
-                </button>
-                <button
-                  onClick={() => setShowHighIntensityOnly(true)}
-                  className={`px-3 py-1.5 text-xs font-semibold rounded-md transition flex items-center gap-1.5 ${showHighIntensityOnly ? "bg-rose-600 text-white shadow" : "text-slate-400 hover:text-slate-200"}`}
-                >
-                  🔥 High Intensity
-                </button>
-              </div>
+                  {/* Calories Burned */}
+                  <div className="grid grid-cols-3 items-center gap-4">
+                    <label className="text-sm font-bold text-slate-700 text-right pr-2">
+                      Calories Burned:
+                    </label>
+                    <div className="col-span-2 relative">
+                      <input
+                        type="number"
+                        value={caloriesBurned}
+                        onChange={(e) => setCaloriesBurned(e.target.value)}
+                        placeholder="e.g. 250"
+                        className="w-full bg-slate-50 border border-slate-200 focus:border-blue-500 focus:bg-white text-sm rounded-lg px-3 py-2 outline-none transition focus:ring-2 focus:ring-blue-500/10 placeholder:text-slate-400 pr-12"
+                        disabled={submitting}
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">kcal</span>
+                    </div>
+                  </div>
+
+                  {/* Category Dropdown */}
+                  <div className="grid grid-cols-3 items-center gap-4">
+                    <label className="text-sm font-bold text-slate-700 text-right pr-2">
+                      Category:
+                    </label>
+                    <div className="col-span-2 relative">
+                      <select
+                        value={category}
+                        onChange={(e) => setCategory(e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 focus:border-blue-500 focus:bg-white text-sm rounded-lg px-3 py-2 outline-none transition cursor-pointer appearance-none pr-8 text-slate-700 font-medium"
+                        disabled={submitting}
+                      >
+                        <option value="Cardio">🏃‍♂️ Cardio</option>
+                        <option value="Strength">🏋️‍♀️ Strength</option>
+                        <option value="Flexibility">🧘‍♂️ Flexibility</option>
+                      </select>
+                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-400 text-[10px]">
+                        ▼
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+
+                {/* Messages Box */}
+                {errorMessage && (
+                  <div className="p-3 bg-rose-50 border border-rose-100 rounded-lg text-xs text-rose-600 flex items-center gap-2">
+                    <span>⚠️</span> {errorMessage}
+                  </div>
+                )}
+
+                {successMessage && (
+                  <div className="p-3 bg-emerald-50 border border-emerald-100 rounded-lg text-xs text-emerald-600 flex items-center gap-2">
+                    <span>✨</span> {successMessage}
+                  </div>
+                )}
+
+                {/* Footer Buttons (Matches wireframe but highly stylized) */}
+                <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+                  {/* Cancel Button */}
+                  <button
+                    type="button"
+                    onClick={handleCancel}
+                    className="px-5 py-2 text-sm font-bold text-rose-500 bg-white border-2 border-rose-200 hover:border-rose-500 hover:bg-rose-50/50 active:scale-95 transition-all duration-150 rounded-lg"
+                    disabled={submitting}
+                  >
+                    Cancel
+                  </button>
+
+                  {/* Save Workout Button */}
+                  <button
+                    type="submit"
+                    className="px-5 py-2 text-sm font-bold text-emerald-600 bg-white border-2 border-emerald-200 hover:border-emerald-500 hover:bg-emerald-50/50 active:scale-95 transition-all duration-150 rounded-lg shadow-sm flex items-center justify-center min-w-[130px]"
+                    disabled={submitting}
+                  >
+                    {submitting ? (
+                      <div className="flex items-center gap-1.5">
+                        <svg className="animate-spin h-4 w-4 text-emerald-600" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        </svg>
+                        Saving...
+                      </div>
+                    ) : (
+                      "Save Workout"
+                    )}
+                  </button>
+                </div>
+
+              </form>
             </div>
 
-            {/* List & Loading States */}
-            {loading ? (
-              <div className="flex flex-col items-center justify-center py-20 flex-1">
-                <svg className="animate-spin h-8 w-8 text-indigo-500 mb-4" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                </svg>
-                <p className="text-sm text-slate-400">Fetching workouts...</p>
-              </div>
-            ) : workouts.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 px-4 text-center border-2 border-dashed border-slate-850 rounded-xl flex-1">
-                <span className="text-4xl mb-3">📭</span>
-                <h3 className="font-bold text-slate-300 mb-1">No workouts found</h3>
-                <p className="text-xs text-slate-500 max-w-xs">
-                  {showHighIntensityOnly 
-                    ? "No sessions have burned more than 300 kcal yet." 
-                    : "Get started by logging your very first workout in the form!"}
-                </p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto flex-1">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="border-b border-slate-850 text-slate-400 text-xs uppercase tracking-wider font-semibold">
-                      <th className="pb-3 pl-4">Exercise</th>
-                      <th className="pb-3">Category</th>
-                      <th className="pb-3 text-right">Duration</th>
-                      <th className="pb-3 text-right">Calories</th>
-                      <th className="pb-3 text-center">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-850 text-sm">
-                    {workouts.map((w) => (
-                      <tr 
-                        key={w.id} 
-                        className={`hover:bg-slate-850/40 transition group ${w.caloriesBurned > 300 ? "bg-rose-950/5" : ""}`}
-                      >
-                        <td className="py-3.5 pl-4 font-semibold text-slate-200">
-                          {w.exerciseName}
-                          {w.caloriesBurned > 300 && (
-                            <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-500/10 text-rose-400 border border-rose-500/20">
-                              INTENSE
-                            </span>
-                          )}
-                        </td>
-                        <td className="py-3.5 text-slate-400">
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${
-                            w.category === "Cardio" 
-                              ? "bg-sky-500/10 text-sky-400 border-sky-500/20" 
-                              : w.category === "Strength"
-                              ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
-                              : "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                          }`}>
-                            {w.category}
-                          </span>
-                        </td>
-                        <td className="py-3.5 text-right font-medium text-slate-300">
-                          {w.durationMinutes} min
-                        </td>
-                        <td className="py-3.5 text-right font-semibold text-indigo-400">
-                          {w.caloriesBurned.toFixed(0)} kcal
-                        </td>
-                        <td className="py-3.5 text-center">
-                          <button
-                            onClick={() => handleDelete(w.id!)}
-                            className="text-xs text-slate-500 hover:text-rose-400 p-1.5 rounded bg-transparent hover:bg-rose-500/10 active:scale-95 transition"
-                            title="Delete record"
-                          >
-                            🗑️
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
           </div>
-        </section>
-      </main>
+
+          {/* RIGHT COLUMN: Modern Fitness Dashboard (List of workouts) */}
+          <div className="lg:col-span-7">
+            <div className="bg-white border border-slate-200/80 rounded-2xl shadow-xl p-6 sm:p-8">
+              
+              {/* Header inside Dashboard */}
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900">
+                    Logged Workouts
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    Real-time synchronization with Spring Boot backend API.
+                  </p>
+                </div>
+
+                {/* Filter Selector */}
+                <div className="flex items-center bg-slate-100 p-1 border border-slate-200 rounded-lg">
+                  <button
+                    onClick={() => setShowHighIntensityOnly(false)}
+                    className={`px-3 py-1 text-xs font-semibold rounded-md transition ${!showHighIntensityOnly ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+                  >
+                    All
+                  </button>
+                  <button
+                    onClick={() => setShowHighIntensityOnly(true)}
+                    className={`px-3 py-1 text-xs font-semibold rounded-md transition flex items-center gap-1 ${showHighIntensityOnly ? "bg-rose-500 text-white shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+                  >
+                    🔥 High Intensity
+                  </button>
+                </div>
+              </div>
+
+              {/* Table List of Sessions */}
+              {loading ? (
+                <div className="flex flex-col items-center justify-center py-20">
+                  <svg className="animate-spin h-8 w-8 text-blue-500 mb-3" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                  <p className="text-xs text-slate-450">Loading sessions...</p>
+                </div>
+              ) : workouts.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-center border border-dashed border-slate-200 rounded-xl">
+                  <span className="text-3xl mb-2">📋</span>
+                  <h4 className="font-bold text-slate-450 text-sm">No records logged</h4>
+                  <p className="text-xs text-slate-400 max-w-xs mt-1">
+                    {showHighIntensityOnly 
+                      ? "No records with calories burned > 300 kcal." 
+                      : "Create your first workout session to display here!"}
+                  </p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-slate-200 text-slate-400 text-xs uppercase tracking-wider font-bold">
+                        <th className="pb-3 pl-3">ID</th>
+                        <th className="pb-3">Exercise</th>
+                        <th className="pb-3">Category</th>
+                        <th className="pb-3 text-right">Duration</th>
+                        <th className="pb-3 text-right">Calories</th>
+                        <th className="pb-3 text-center">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 text-sm">
+                      {workouts.map((w) => (
+                        <tr 
+                          key={w.id} 
+                          className={`hover:bg-slate-50/80 transition-all ${w.caloriesBurned > 300 ? "bg-rose-50/20" : ""}`}
+                        >
+                          <td className="py-3.5 pl-3 font-mono text-xs font-semibold text-slate-400">
+                            #{w.id}
+                          </td>
+                          <td className="py-3.5 font-semibold text-slate-800">
+                            {w.exerciseName}
+                            {w.caloriesBurned > 300 && (
+                              <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-rose-100 text-rose-600 border border-rose-200">
+                                INTENSE
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-3.5">
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border ${
+                              w.category === "Cardio" 
+                                ? "bg-sky-50 text-sky-600 border-sky-200" 
+                                : w.category === "Strength"
+                                ? "bg-amber-50 text-amber-600 border-amber-200"
+                                : "bg-emerald-50 text-emerald-600 border-emerald-200"
+                            }`}>
+                              {w.category}
+                            </span>
+                          </td>
+                          <td className="py-3.5 text-right font-medium text-slate-600">
+                            {w.durationMinutes}m
+                          </td>
+                          <td className="py-3.5 text-right font-bold text-blue-600">
+                            {w.caloriesBurned.toFixed(0)} kcal
+                          </td>
+                          <td className="py-3.5 text-center">
+                            <button
+                              onClick={() => handleDelete(w.id!)}
+                              className="text-xs text-slate-400 hover:text-rose-500 p-1.5 rounded-lg bg-transparent hover:bg-rose-50 active:scale-90 transition-all duration-150"
+                              title="Delete record"
+                            >
+                              🗑️
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
     </div>
   );
 }
